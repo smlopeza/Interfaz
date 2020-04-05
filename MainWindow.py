@@ -7,9 +7,23 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import  QMessageBox,QAction, QFileDialog
-import Script_entradas as SE
-from Q3P3 import Modelo3_
+# import Script_entradas as SE
+# from Q3P3 import Modelo3_
 from functools import partial
+
+import pandas as pd
+import numpy as np
+import datetime as dt
+import Script_entradas as SE
+from copy import deepcopy
+
+""" Este incluye lluvia entonces es trihorario"""
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
+
 
 
 def showdialog(self):
@@ -27,20 +41,35 @@ def showdialog(self):
 
 
 class Ui_MainWindow(object):
+    def __init__( self ):
+        '''
+        Initialize the super class
+        '''
+        super().__init__()
+        # self.text_Q = self.SingleBrowse2()
+        # self.text_P = self.FolderBrowse2()
+    # def __init__(self):
+    #
+    #     self.text_Q = self.Q3P3_Q_toolButton.clicked.connect(self.SingleBrowse2)
+    #     self.text_P = self.Q3P3_P_toolButton.clicked.connect(self.FolderBrowse2)
 
     def SingleBrowse2(self):
         filePaths,_ = QFileDialog.getOpenFileNames(self, 'Abrir archivo', "home",'*.csv')
-        text = SE.Lectura_Q(filePaths[0])
-        print (type(text))
-        print (text)
-        return text
+        # text = SE.Lectura_Q(filePaths[0])
+        self.text_Q = filePaths[0]
+        # print (type(text))
+        # print (text)
+        # return text
+        # return filePaths[0]
 
     def FolderBrowse2(self):
         filePaths = QFileDialog.getExistingDirectory(self, ("Seleccionar carpeta"),  "home")
-        text = SE.Read_WRF_Amoya(filePaths+'/')
-        print (type(text))
-        print (text)
-        return text
+        # text = SE.Read_WRF_Amoya(filePaths+'/')
+        self.text_P = filePaths+'/'
+        # print (type(text))
+        # print (text)
+        # return text
+        # return filePaths+'/'
 
 
     def setupUi(self, MainWindow):
@@ -57,7 +86,7 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(9)
         font.setBold(True)
-        font.setWeight(75)        
+        font.setWeight(75)
         self.Q3P3_radioButton.setFont(font)
         self.Q3P3_radioButton.setObjectName("Q3P3_radioButton")
 
@@ -66,7 +95,7 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(9)
         font.setBold(True)
-        font.setWeight(75)        
+        font.setWeight(75)
         self.Q1_radioButton.setFont(font)
         self.Q1_radioButton.setObjectName("Q1_radioButton")
 
@@ -88,13 +117,15 @@ class Ui_MainWindow(object):
         self.Q3P3_Q_toolButton = QtWidgets.QToolButton(self.centralwidget)
         self.Q3P3_Q_toolButton.setGeometry(QtCore.QRect(440, 70, 31, 31))
         self.Q3P3_Q_toolButton.setObjectName("Q3P3_Q_toolButton")
-        text_Q = self.Q3P3_Q_toolButton.clicked.connect(self.SingleBrowse2)
+        # text_Q = self.Q3P3_Q_toolButton.clicked.connect(self.SingleBrowse2)
+        self.Q3P3_Q_toolButton.clicked.connect(self.SingleBrowse2)
         #print (text)
 
         self.Q3P3_P_toolButton = QtWidgets.QToolButton(self.centralwidget)
         self.Q3P3_P_toolButton.setGeometry(QtCore.QRect(440, 110, 31, 31))
         self.Q3P3_P_toolButton.setObjectName("Q3P3_P_toolButton")
-        text_P = self.Q3P3_P_toolButton.clicked.connect(self.FolderBrowse2)
+        # text_P = self.Q3P3_P_toolButton.clicked.connect(self.FolderBrowse2)
+        self.Q3P3_P_toolButton.clicked.connect(self.FolderBrowse2)
 
         self.Q1_Q_toolButton = QtWidgets.QToolButton(self.centralwidget)
         self.Q1_Q_toolButton.setGeometry(QtCore.QRect(440, 190, 31, 31))
@@ -113,9 +144,16 @@ class Ui_MainWindow(object):
         self.Pronostico_Button.setGeometry(QtCore.QRect(270, 260, 201, 28))
         self.Pronostico_Button.setObjectName("Pronostico_Button")
 
-        Pron = self.Pronostico_Button.clicked.connect(lambda: Modelo3_(text_Q,text_P))###############################################
+
+
+
+        # Pron = self.Pronostico_Button.clicked.connect(lambda: self.Modelo3_(text_Q,text_P))###############################################
+        self.Pronostico_Button.clicked.connect(self.Modelo3_)###############################################
+        # Mierda_pron = self.Pronostico_Button.clicked.connect(
+        #                 self.Modelo3_(SE.Lectura_Q(self.text_Q),
+        #                               SE.Read_WRF_Amoya(self.text_P)))###############################################
         #Pron = self.Pronostico_Button.clicked.connect(partial(Modelo3_,text_Q,text_P))# Modelo3_(text_Q,text_P))
-    
+
 
 
         # --------------Espacio para mostrar la grafica ----------------------
@@ -179,7 +217,6 @@ class Ui_MainWindow(object):
         self.label_4.setObjectName("label_4")
 
 
-
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 505, 26))
@@ -208,3 +245,47 @@ class Ui_MainWindow(object):
         self.Q1_Q_toolButton.setText(_translate("MainWindow", "..."))
         self.Q3P3_Q_toolButton.setText(_translate("MainWindow", "..."))
         self.Q3P3_P_toolButton.setText(_translate("MainWindow", "..."))
+
+    def Modelo3_(self):
+
+        Caudales_Amoya = SE.Lectura_Q(self.text_Q)
+        PPT = SE.Read_WRF_Amoya(self.text_P)
+        print (Caudales_Amoya)
+        #PPT = SE.Read_WRF_Amoya(ruta_ppt)
+        #Caudales_Amoya = SE.Lectura_Q(ruta_q)
+
+        #Hora_format = dt.datetime.now()
+
+        Hora_format = dt.datetime.strptime('2019-06-07 07:00:00','%Y-%m-%d %H:%M:%S')
+        hrs_disp = np.arange(1,24,3)
+        nearest_hour = find_nearest(hrs_disp,Hora_format.hour)
+        date_loc = dt.datetime.strptime(str(Hora_format.date())+' '+ "%02d" % nearest_hour+':00:00','%Y-%m-%d %H:%M:%S')
+
+        entradas=np.zeros((1,5))
+
+        Values_Q = []
+        for i in [9,6,3]:
+            Values_Q.append(Caudales_Amoya.loc[date_loc-dt.timedelta(hours=i)].values[0])
+
+        Fechas_pronostico = PPT[date_loc:].index
+        self.Fechas_pronostico = PPT[date_loc:].index
+        """
+        for Date in Fechas_pronostico:
+
+            print (Date)
+            entradas[:,0] = Values_Q[-3]
+            entradas[:,1] = Values_Q[-2]
+            entradas[:,2] = Values_Q[-1]
+            entradas[:,3] = PPT.loc[Date-dt.timedelta(hours=6)].values
+            entradas[:,4] = PPT.loc[Date-dt.timedelta(hours=3)].values
+
+            rn = CargarPMC('/mnt/c/Users/Silvana M/Documents/Contratos/Gotta_Amoya/00_FINAL/01_SCRIPTS/Redes/PorHorizonte/Q3P3/model')
+            val_pron=rn.predict(entradas)[:,0]
+            Values_Q = np.append(Values_Q, val_pron)
+
+        Pronostico = pd.DataFrame({'Caudal_pronosticado':Values_Q[-len(Fechas_pronostico):]},index= Fechas_pronostico)
+        #if ruta_save != None:
+        #    Pronostico.to_csv(ruta_save+'.csv')
+        """
+
+        # return Fechas_pronostico
